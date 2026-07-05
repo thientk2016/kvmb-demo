@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản lý công việc — Xây dựng & BĐS</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#ffffff; --ink:#1f2937; --muted:#6b7280;
+    --line:#e5e7eb; --brand:#0f766e; --brand-2:#0d9488;
+    --red:#dc2626; --amber:#d97706; --green:#16a34a; --blue:#2563eb;
+    --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%}
+  header{background:var(--brand);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:20;
+    box-shadow:var(--shadow)}
+  header h1{margin:0;font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+  header .sub{font-size:12px;opacity:.85;margin-top:2px}
+  .wrap{max-width:1100px;margin:0 auto;padding:14px}
+
+  /* Stat tiles */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;
+    box-shadow:var(--shadow)}
+  .stat .n{font-size:24px;font-weight:800;line-height:1}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:4px}
+  .stat.red .n{color:var(--red)} .stat.amber .n{color:var(--amber)}
+  .stat.green .n{color:var(--green)} .stat.blue .n{color:var(--blue)}
+
+  /* Toolbar */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .toolbar .grow{flex:1 1 180px}
+  input,select,textarea,button{font-family:inherit;font-size:14px}
+  input[type=text],input[type=date],input[type=number],select,textarea{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink)}
+  textarea{resize:vertical;min-height:64px}
+  .btn{background:var(--brand);color:#fff;border:none;border-radius:9px;padding:9px 14px;
+    font-weight:600;cursor:pointer;white-space:nowrap}
+  .btn:hover{background:var(--brand-2)}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{background:#f9fafb}
+  .btn.sm{padding:6px 10px;font-size:13px}
+  .btn.danger{background:#fff;color:var(--red);border:1px solid #fecaca}
+
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;
+    cursor:pointer;font-size:13px;color:var(--muted)}
+  .chip.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+  /* Task list */
+  .task{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+    margin-bottom:10px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:flex-start}
+  .task .check{margin-top:2px}
+  .task .check input{width:20px;height:20px;cursor:pointer}
+  .task .body{flex:1;min-width:0}
+  .task .title{font-weight:600;font-size:15px;word-break:break-word}
+  .task.done .title{text-decoration:line-through;color:var(--muted)}
+  .task .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}
+  .tag{font-size:12px;padding:3px 8px;border-radius:6px;background:#f3f4f6;color:#374151;
+    display:inline-flex;align-items:center;gap:4px}
+  .tag.proj{background:#e0f2fe;color:#075985}
+  .tag.person{background:#f0fdf4;color:#166534}
+  .tag.due{background:#f3f4f6}
+  .tag.due.over{background:#fee2e2;color:#991b1b;font-weight:600}
+  .tag.due.soon{background:#fef3c7;color:#92400e}
+  .prio{width:8px;align-self:stretch;border-radius:4px;flex:0 0 8px}
+  .prio.cao{background:var(--red)} .prio.tb{background:var(--amber)} .prio.thap{background:#cbd5e1}
+  .task .note{font-size:13px;color:var(--muted);margin-top:6px;white-space:pre-wrap}
+  .task .actions{display:flex;gap:6px;flex-shrink:0}
+  .iconbtn{background:none;border:none;cursor:pointer;font-size:16px;padding:4px;color:var(--muted)}
+  .iconbtn:hover{color:var(--ink)}
+
+  .empty{text-align:center;color:var(--muted);padding:40px 16px}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;
+    justify-content:center;z-index:50}
+  .overlay.show{display:flex}
+  .modal{background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:18px;
+    max-height:92vh;overflow:auto}
+  .modal h2{margin:0 0 14px;font-size:17px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;font-weight:600}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .modal .foot{display:flex;gap:8px;margin-top:8px}
+  .modal .foot .btn{flex:1;justify-content:center}
+
+  .footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+  .footer a{color:var(--brand);cursor:pointer}
+
+  @media (min-width:560px){
+    .modal{border-radius:16px;align-self:center;margin:auto}
+    .overlay{align-items:center}
+  }
+  @media (max-width:520px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .stat .n{font-size:20px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding-top:0;padding-bottom:0">
+    <h1>🏗️ Quản lý công việc</h1>
+    <div class="sub">Công trình &amp; cho thuê BĐS — thay cho việc giao qua Zalo</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- Thống kê nhanh -->
+  <div class="stats">
+    <div class="stat blue"><div class="n" id="s-total">0</div><div class="l">Đang làm</div></div>
+    <div class="stat red"><div class="n" id="s-over">0</div><div class="l">Trễ hạn</div></div>
+    <div class="stat amber"><div class="n" id="s-soon">0</div><div class="l">Sắp đến hạn (3 ngày)</div></div>
+    <div class="stat green"><div class="n" id="s-done">0</div><div class="l">Hoàn thành</div></div>
+  </div>
+
+  <!-- Thanh công cụ -->
+  <div class="toolbar">
+    <div class="grow"><input type="text" id="search" placeholder="🔍 Tìm việc, người, công trình..."></div>
+    <select id="filter-person" style="width:auto"><option value="">👤 Tất cả người</option></select>
+    <select id="filter-project" style="width:auto"><option value="">🏢 Tất cả công trình</option></select>
+    <button class="btn" id="btn-add">+ Thêm việc</button>
+  </div>
+
+  <!-- Bộ lọc trạng thái -->
+  <div class="chips" id="chips">
+    <div class="chip active" data-f="dang">Đang làm</div>
+    <div class="chip" data-f="tất cả">Tất cả</div>
+    <div class="chip" data-f="tre">Trễ hạn</div>
+    <div class="chip" data-f="xong">Hoàn thành</div>
+  </div>
+
+  <!-- Danh sách -->
+  <div id="list"></div>
+
+  <div class="footer">
+    Dữ liệu được lưu trên máy này. &nbsp;
+    <a onclick="exportData()">⬇️ Xuất/Sao lưu</a> &nbsp;•&nbsp;
+    <a onclick="document.getElementById('importFile').click()">⬆️ Nhập dữ liệu</a> &nbsp;•&nbsp;
+    <a onclick="loadSample()">Tải dữ liệu mẫu</a>
+    <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+
+<!-- Modal thêm/sửa -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modal-title">Thêm việc mới</h2>
+    <input type="hidden" id="f-id">
+    <div class="field">
+      <label>Tên công việc *</label>
+      <input type="text" id="f-title" placeholder="VD: Đổ bê tông sàn tầng 2 — công trình Lê Lợi">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Công trình / Dự án</label>
+        <input type="text" id="f-project" list="projects" placeholder="VD: CT Lê Lợi">
+        <datalist id="projects"></datalist>
+      </div>
+      <div class="field">
+        <label>Người phụ trách</label>
+        <input type="text" id="f-person" list="people" placeholder="VD: Anh Hùng">
+        <datalist id="people"></datalist>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Hạn hoàn thành</label>
+        <input type="date" id="f-due">
+      </div>
+      <div class="field">
+        <label>Độ ưu tiên</label>
+        <select id="f-prio">
+          <option value="tb">🟠 Bình thường</option>
+          <option value="cao">🔴 Gấp / Quan trọng</option>
+          <option value="thap">⚪ Thấp</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Ghi chú</label>
+      <textarea id="f-note" placeholder="Chi tiết, yêu cầu, vật tư cần chuẩn bị..."></textarea>
+    </div>
+    <div class="foot">
+      <button class="btn ghost" onclick="closeModal()">Huỷ</button>
+      <button class="btn" onclick="saveTask()">Lưu</button>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn danger sm" id="btn-delete" style="display:none;width:100%" onclick="deleteTask()">🗑️ Xoá việc này</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = 'kvmb_tasks_v1';
+let tasks = [];
+let statusFilter = 'dang';
+
+function load(){
+  try{ tasks = JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ tasks = []; }
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(tasks)); }
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function daysLeft(due){
+  if(!due) return null;
+  const d = new Date(due+'T00:00:00');
+  const t = new Date(todayStr()+'T00:00:00');
+  return Math.round((d - t)/86400000);
+}
+
+function fmtDue(due){
+  if(!due) return '';
+  const [y,m,d] = due.split('-');
+  return d+'/'+m;
+}
+
+/* ---------- Render ---------- */
+function render(){
+  // datalists + filters
+  const projects = [...new Set(tasks.map(t=>t.project).filter(Boolean))].sort();
+  const people = [...new Set(tasks.map(t=>t.person).filter(Boolean))].sort();
+  fillList('projects', projects);
+  fillList('people', people);
+  fillSelect('filter-project', projects, '🏢 Tất cả công trình');
+  fillSelect('filter-person', people, '👤 Tất cả người');
+
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const fp = document.getElementById('filter-person').value;
+  const fpr = document.getElementById('filter-project').value;
+
+  let arr = tasks.filter(t=>{
+    if(fp && t.person!==fp) return false;
+    if(fpr && t.project!==fpr) return false;
+    if(q){
+      const hay = (t.title+' '+(t.person||'')+' '+(t.project||'')+' '+(t.note||'')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    const dl = daysLeft(t.due);
+    if(statusFilter==='dang') return !t.done;
+    if(statusFilter==='xong') return t.done;
+    if(statusFilter==='tre') return !t.done && dl!==null && dl<0;
+    return true; // tất cả
+  });
+
+  // sort: chưa xong trước, gấp trước, hạn gần trước
+  const prioRank = {cao:0, tb:1, thap:2};
+  arr.sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    const da=daysLeft(a.due), db=daysLeft(b.due);
+    if((da===null)!==(db===null)) return da===null?1:-1;
+    if(da!==null && da!==db) return da-db;
+    return (prioRank[a.prio]??1)-(prioRank[b.prio]??1);
+  });
+
+  const list = document.getElementById('list');
+  if(arr.length===0){
+    list.innerHTML = '<div class="empty">Chưa có công việc nào ở mục này.<br>Bấm <b>+ Thêm việc</b> để bắt đầu.</div>';
+  } else {
+    list.innerHTML = arr.map(taskHTML).join('');
+  }
+  updateStats();
+}
+
+function taskHTML(t){
+  const dl = daysLeft(t.due);
+  let dueCls='', dueTxt='';
+  if(t.due){
+    dueTxt = '📅 '+fmtDue(t.due);
+    if(!t.done){
+      if(dl<0){ dueCls='over'; dueTxt='⚠️ Trễ '+Math.abs(dl)+' ngày'; }
+      else if(dl===0){ dueCls='soon'; dueTxt='📅 Hôm nay'; }
+      else if(dl<=3){ dueCls='soon'; dueTxt='📅 Còn '+dl+' ngày'; }
+    }
+  }
+  return `<div class="task ${t.done?'done':''}">
+    <div class="prio ${t.prio||'tb'}"></div>
+    <div class="check"><input type="checkbox" ${t.done?'checked':''} onclick="toggle('${t.id}')"></div>
+    <div class="body">
+      <div class="title">${esc(t.title)}</div>
+      <div class="meta">
+        ${t.project?`<span class="tag proj">🏢 ${esc(t.project)}</span>`:''}
+        ${t.person?`<span class="tag person">👤 ${esc(t.person)}</span>`:''}
+        ${dueTxt?`<span class="tag due ${dueCls}">${dueTxt}</span>`:''}
+      </div>
+      ${t.note?`<div class="note">${esc(t.note)}</div>`:''}
+    </div>
+    <div class="actions">
+      <button class="iconbtn" onclick="openEdit('${t.id}')" title="Sửa">✏️</button>
+    </div>
+  </div>`;
+}
+
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function updateStats(){
+  let dang=0, over=0, soon=0, done=0;
+  tasks.forEach(t=>{
+    if(t.done){ done++; return; }
+    dang++;
+    const dl=daysLeft(t.due);
+    if(dl!==null){ if(dl<0) over++; else if(dl<=3) soon++; }
+  });
+  document.getElementById('s-total').textContent=dang;
+  document.getElementById('s-over').textContent=over;
+  document.getElementById('s-soon').textContent=soon;
+  document.getElementById('s-done').textContent=done;
+}
+
+function fillList(id, arr){
+  document.getElementById(id).innerHTML = arr.map(v=>`<option value="${esc(v)}">`).join('');
+}
+function fillSelect(id, arr, first){
+  const el=document.getElementById(id); const cur=el.value;
+  el.innerHTML = `<option value="">${first}</option>`+arr.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  el.value = cur;
+}
+
+/* ---------- Actions ---------- */
+function toggle(id){
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  t.done=!t.done; save(); render();
+}
+function openAdd(){
+  document.getElementById('modal-title').textContent='Thêm việc mới';
+  document.getElementById('f-id').value='';
+  document.getElementById('f-title').value='';
+  document.getElementById('f-project').value=document.getElementById('filter-project').value||'';
+  document.getElementById('f-person').value='';
+  document.getElementById('f-due').value='';
+  document.getElementById('f-prio').value='tb';
+  document.getElementById('f-note').value='';
+  document.getElementById('btn-delete').style.display='none';
+  showModal();
+}
+function openEdit(id){
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  document.getElementById('modal-title').textContent='Sửa việc';
+  document.getElementById('f-id').value=t.id;
+  document.getElementById('f-title').value=t.title;
+  document.getElementById('f-project').value=t.project||'';
+  document.getElementById('f-person').value=t.person||'';
+  document.getElementById('f-due').value=t.due||'';
+  document.getElementById('f-prio').value=t.prio||'tb';
+  document.getElementById('f-note').value=t.note||'';
+  document.getElementById('btn-delete').style.display='block';
+  showModal();
+}
+function saveTask(){
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){ alert('Vui lòng nhập tên công việc'); return; }
+  const id=document.getElementById('f-id').value;
+  const data={
+    title,
+    project:document.getElementById('f-project').value.trim(),
+    person:document.getElementById('f-person').value.trim(),
+    due:document.getElementById('f-due').value,
+    prio:document.getElementById('f-prio').value,
+    note:document.getElementById('f-note').value.trim(),
+  };
+  if(id){
+    const t=tasks.find(x=>x.id===id); Object.assign(t,data);
+  } else {
+    tasks.push({id:uid(),done:false,created:todayStr(),...data});
+  }
+  save(); closeModal(); render();
+}
+function deleteTask(){
+  const id=document.getElementById('f-id').value;
+  if(!id) return;
+  if(!confirm('Xoá công việc này?')) return;
+  tasks=tasks.filter(x=>x.id!==id);
+  save(); closeModal(); render();
+}
+function showModal(){ document.getElementById('overlay').classList.add('show'); }
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); }
+
+/* ---------- Xuất / Nhập ---------- */
+function exportData(){
+  const blob=new Blob([JSON.stringify(tasks,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='cong-viec-'+todayStr()+'.json';
+  a.click();
+}
+function importData(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      if(!Array.isArray(data)) throw 0;
+      if(confirm('Nhập '+data.length+' công việc? (sẽ thay dữ liệu hiện tại)')){
+        tasks=data; save(); render();
+      }
+    }catch(e){ alert('File không hợp lệ'); }
+    ev.target.value='';
+  };
+  r.readAsText(f);
+}
+function loadSample(){
+  if(tasks.length && !confirm('Tải dữ liệu mẫu sẽ thay dữ liệu hiện tại. Tiếp tục?')) return;
+  const t=todayStr();
+  const plus=n=>{const d=new Date(t+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+  tasks=[
+    {id:uid(),done:false,created:t,title:'Đổ bê tông sàn tầng 2',project:'CT Lê Lợi',person:'Anh Hùng',due:plus(-2),prio:'cao',note:'Đặt xe bê tông trước 1 ngày. Kiểm tra cốp pha.'},
+    {id:uid(),done:false,created:t,title:'Nghiệm thu điện nước tầng 1',project:'CT Lê Lợi',person:'Anh Tuấn',due:plus(1),prio:'tb',note:''},
+    {id:uid(),done:false,created:t,title:'Thu tiền thuê nhà tháng 7 — 12 Trần Phú',project:'Cho thuê',person:'Chị Lan',due:plus(0),prio:'cao',note:'Khách: anh Minh. 15 triệu/tháng.'},
+    {id:uid(),done:false,created:t,title:'Báo giá vật tư gạch ốp lát',project:'CT Nguyễn Huệ',person:'Anh Hùng',due:plus(3),prio:'tb',note:''},
+    {id:uid(),done:false,created:t,title:'Ký gia hạn hợp đồng thuê kho',project:'Cho thuê',person:'Chị Lan',due:plus(7),prio:'thap',note:'Hợp đồng hết hạn cuối tháng.'},
+    {id:uid(),done:true,created:t,title:'Mua thép phi 16',project:'CT Lê Lợi',person:'Anh Tuấn',due:plus(-5),prio:'tb',note:''},
+  ];
+  save(); render();
+}
+
+/* ---------- Events ---------- */
+document.getElementById('btn-add').onclick=openAdd;
+document.getElementById('search').oninput=render;
+document.getElementById('filter-person').onchange=render;
+document.getElementById('filter-project').onchange=render;
+document.getElementById('overlay').onclick=e=>{ if(e.target.id==='overlay') closeModal(); };
+document.querySelectorAll('#chips .chip').forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll('#chips .chip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active'); statusFilter=c.dataset.f; render();
+  };
+});
+
+load();
+render();
+</script>
+</body>
+</html>
