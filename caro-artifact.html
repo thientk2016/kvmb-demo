@@ -27,7 +27,15 @@
   .player .mark{font-size:24px;font-weight:900;line-height:1}
   .player.x .mark{color:var(--x)}
   .player.o .mark{color:var(--o)}
-  .player .name{font-size:12px;color:var(--muted);margin-top:2px}
+  .player .name{
+    font-size:13px;color:var(--ink);margin-top:2px;font-family:inherit;font-weight:700;
+    width:100%;max-width:100%;text-align:center;background:transparent;
+    border:none;border-bottom:1px dashed var(--line);padding:3px 2px;border-radius:0;
+  }
+  .player.x .name{color:#fca5a5}
+  .player.o .name{color:#93c5fd}
+  .player .name:focus{outline:none;border-bottom-color:var(--accent)}
+  .player .name::placeholder{color:var(--muted);font-weight:600}
   .player .score{font-size:22px;font-weight:800;margin-top:4px}
   .player .turn{font-size:10px;font-weight:700;color:var(--muted);margin-top:3px;height:12px;
     text-transform:uppercase;letter-spacing:.5px;visibility:hidden}
@@ -84,13 +92,15 @@
 <div class="status">
   <div class="player x active" id="pX">
     <div class="mark">✕</div>
-    <div class="name">Người chơi 1</div>
+    <input class="name" id="nameX" value="Trần Lập" maxlength="24"
+           aria-label="Tên người chơi 1" placeholder="Người chơi 1">
     <div class="score" id="scoreX">0</div>
     <div class="turn">Đang đi</div>
   </div>
   <div class="player o" id="pO">
     <div class="mark">◯</div>
-    <div class="name">Người chơi 2</div>
+    <input class="name" id="nameO" value="Bố đẹp trai" maxlength="24"
+           aria-label="Tên người chơi 2" placeholder="Người chơi 2">
     <div class="score" id="scoreO">0</div>
     <div class="turn">Đang đi</div>
   </div>
@@ -141,6 +151,25 @@
   var sizeSel = document.getElementById('sizeSel');
   var elX = document.getElementById('pX'), elO = document.getElementById('pO');
   var scoreXEl = document.getElementById('scoreX'), scoreOEl = document.getElementById('scoreO');
+  var nameX = document.getElementById('nameX'), nameO = document.getElementById('nameO');
+  var lastWin = null;
+
+  try{
+    var saved = JSON.parse(localStorage.getItem('caroNames') || '{}');
+    if(saved.x != null) nameX.value = saved.x;
+    if(saved.o != null) nameO.value = saved.o;
+  }catch(e){}
+  function saveNames(){
+    try{ localStorage.setItem('caroNames', JSON.stringify({x:nameX.value, o:nameO.value})); }catch(e){}
+  }
+  function playerName(p){
+    var n = (p==='X' ? nameX.value : nameO.value).trim();
+    return n || (p==='X' ? 'Người chơi 1' : 'Người chơi 2');
+  }
+  [nameX, nameO].forEach(function(inp){
+    inp.addEventListener('change', saveNames);
+    inp.addEventListener('focus', function(){ this.select(); });
+  });
 
   function newGame(){
     size = parseInt(sizeSel.value,10) || 15;
@@ -148,6 +177,7 @@
     current = 'X';
     moves = [];
     over = false;
+    lastWin = null;
     hideBanner();
     render();
     updateStatus();
@@ -204,6 +234,7 @@
     var line = checkWin(i, current);
     if(line){
       over = true;
+      lastWin = current;
       scores[current]++;
       updateScore();
       line.forEach(function(idx){
@@ -256,7 +287,7 @@
   function showBanner(p){
     document.getElementById('bBig').textContent = '🎉';
     document.getElementById('bTitle').textContent =
-      (p==='X'?'Người chơi 1 (✕)':'Người chơi 2 (◯)') + ' thắng!';
+      playerName(p) + ' ' + (p==='X'?'(✕)':'(◯)') + ' thắng!';
     document.getElementById('bText').textContent = 'Có ' + WIN_LEN + ' quân liền nhau. Chơi tiếp nào!';
     document.getElementById('banner').classList.add('show');
   }
@@ -275,12 +306,12 @@
   document.getElementById('undoBtn').addEventListener('click', function(){
     if(!moves.length) return;
     if(over){
-      var winner = board[moves[moves.length-1]];
-      if(document.getElementById('bTitle').textContent.indexOf('thắng')>=0 && winner){
-        scores[winner] = Math.max(0, scores[winner]-1);
+      if(lastWin){
+        scores[lastWin] = Math.max(0, scores[lastWin]-1);
         updateScore();
       }
       over = false;
+      lastWin = null;
       hideBanner();
     }
     var last = moves.pop();
