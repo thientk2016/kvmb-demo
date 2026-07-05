@@ -27,3 +27,17 @@ Phù hợp để một người (quản lý) theo dõi tổng, hoặc mỗi ngư
 
 **Muốn cả 10 người cùng xem/sửa chung một danh sách theo thời gian thực?** Đó là bước tiếp theo —
 cần đưa ứng dụng lên web có lưu trữ chung. Nhắn để được hỗ trợ dựng.
+
+---
+
+## 🎮 Game Cờ Caro (2 người chơi)
+
+File `caro.html` — game cờ caro cho 2 người chơi chung một điện thoại (pass-and-play),
+thắng khi có 5 quân liền nhau. Chọn cỡ bàn 9–19, có Đi lại / Ván mới / Xóa điểm và bảng điểm.
+
+**Chơi online (bấm là chơi, không cần đăng nhập, gửi Zalo được):**
+
+- https://raw.githack.com/thientk2016/kvmb-demo/claude/caro-game-mobile-a9hl98/caro.html
+- Dự phòng: https://htmlpreview.github.io/?https://github.com/thientk2016/kvmb-demo/blob/claude/caro-game-mobile-a9hl98/caro.html
+
+Hoặc mở file `caro.html` trực tiếp bằng trình duyệt để chơi offline.
