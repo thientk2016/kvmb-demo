@@ -1,0 +1,344 @@
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --line:#334155; --ink:#e2e8f0; --muted:#94a3b8;
+    --cell:#f8fafc; --cell-line:#cbd5e1; --board:#e2e8f0;
+    --x:#ef4444; --o:#3b82f6; --win:#22c55e; --accent:#f59e0b;
+    --shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%;
+    display:flex;flex-direction:column;min-height:100dvh;overflow:hidden;
+  }
+  header{padding:12px 14px 8px;text-align:center;flex:0 0 auto}
+  header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.3px}
+  header .sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+  .status{display:flex;gap:10px;padding:0 12px 10px;flex:0 0 auto;max-width:520px;width:100%;margin:0 auto}
+  .player{
+    flex:1;background:var(--panel);border:2px solid var(--line);border-radius:14px;
+    padding:10px 8px;text-align:center;transition:border-color .15s, transform .15s;box-shadow:var(--shadow);
+  }
+  .player.active{transform:translateY(-2px)}
+  .player.x.active{border-color:var(--x)}
+  .player.o.active{border-color:var(--o)}
+  .player .mark{font-size:24px;font-weight:900;line-height:1}
+  .player.x .mark{color:var(--x)}
+  .player.o .mark{color:var(--o)}
+  .player .name{
+    font-size:13px;color:var(--ink);margin-top:2px;font-family:inherit;font-weight:700;
+    width:100%;max-width:100%;text-align:center;background:transparent;
+    border:none;border-bottom:1px dashed var(--line);padding:3px 2px;border-radius:0;
+  }
+  .player.x .name{color:#fca5a5}
+  .player.o .name{color:#93c5fd}
+  .player .name:focus{outline:none;border-bottom-color:var(--accent)}
+  .player .name::placeholder{color:var(--muted);font-weight:600}
+  .player .score{font-size:22px;font-weight:800;margin-top:4px}
+  .player .turn{font-size:10px;font-weight:700;color:var(--muted);margin-top:3px;height:12px;
+    text-transform:uppercase;letter-spacing:.5px;visibility:hidden}
+  .player.active .turn{visibility:visible}
+  .player.x.active .turn{color:var(--x)}
+  .player.o.active .turn{color:var(--o)}
+
+  .settings{display:flex;gap:8px;align-items:center;justify-content:center;padding:0 12px 8px;
+    flex:0 0 auto;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .settings label{display:flex;align-items:center;gap:6px}
+  .settings select{font-family:inherit;font-size:13px;background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+
+  .board-wrap{flex:1 1 auto;display:flex;align-items:center;justify-content:center;
+    padding:4px 10px;min-height:0;overflow:auto}
+  #board{display:grid;background:var(--board);border-radius:10px;padding:6px;
+    box-shadow:var(--shadow);touch-action:manipulation;gap:0}
+  .cell{background:var(--cell);border:1px solid var(--cell-line);display:flex;align-items:center;
+    justify-content:center;font-weight:900;cursor:pointer;user-select:none;padding:0;line-height:1;transition:background .1s}
+  .cell:active{background:#e2e8f0}
+  .cell.x{color:var(--x)}
+  .cell.o{color:var(--o)}
+  .cell.win{background:var(--win);color:#fff !important;animation:pop .3s ease}
+  .cell.last{box-shadow:inset 0 0 0 2px var(--accent)}
+  @keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+  @media (prefers-reduced-motion: reduce){.cell.win{animation:none}}
+
+  .controls{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    flex:0 0 auto;max-width:520px;width:100%;margin:0 auto}
+  button{flex:1;font-family:inherit;font-size:14px;font-weight:700;color:var(--ink);
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 8px;
+    cursor:pointer;box-shadow:var(--shadow);transition:transform .1s,background .1s}
+  button:active{transform:scale(.96)}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button.primary{background:var(--accent);color:#1a1205;border-color:var(--accent)}
+
+  #banner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(15,23,42,.72);z-index:50;padding:20px;backdrop-filter:blur(2px)}
+  #banner.show{display:flex;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .banner-card{background:var(--panel);border:2px solid var(--line);border-radius:18px;
+    padding:26px 24px;text-align:center;max-width:340px;width:100%;box-shadow:var(--shadow)}
+  .banner-card .big{font-size:48px;line-height:1;margin-bottom:6px}
+  .banner-card h2{margin:0 0 6px;font-size:22px}
+  .banner-card p{margin:0 0 18px;color:var(--muted);font-size:14px}
+  .banner-card button{width:100%}
+</style>
+
+<header>
+  <h1>⚫ Cờ Caro ⚪</h1>
+  <div class="sub">2 người chơi trên cùng điện thoại — thắng khi có <b>5</b> quân liền nhau</div>
+</header>
+
+<div class="status">
+  <div class="player x active" id="pX">
+    <div class="mark">✕</div>
+    <input class="name" id="nameX" value="Trần Lập" maxlength="24"
+           aria-label="Tên người chơi 1" placeholder="Người chơi 1">
+    <div class="score" id="scoreX">0</div>
+    <div class="turn">Đang đi</div>
+  </div>
+  <div class="player o" id="pO">
+    <div class="mark">◯</div>
+    <input class="name" id="nameO" value="Bố đẹp trai" maxlength="24"
+           aria-label="Tên người chơi 2" placeholder="Người chơi 2">
+    <div class="score" id="scoreO">0</div>
+    <div class="turn">Đang đi</div>
+  </div>
+</div>
+
+<div class="settings">
+  <label>Bàn cờ
+    <select id="sizeSel">
+      <option value="9">9 × 9</option>
+      <option value="12">12 × 12</option>
+      <option value="15" selected>15 × 15</option>
+      <option value="19">19 × 19</option>
+    </select>
+  </label>
+</div>
+
+<div class="board-wrap">
+  <div id="board" role="grid" aria-label="Bàn cờ caro"></div>
+</div>
+
+<div class="controls">
+  <button id="undoBtn">↩︎ Đi lại</button>
+  <button id="newBtn" class="primary">🔄 Ván mới</button>
+  <button id="resetBtn">🗑️ Xóa điểm</button>
+</div>
+
+<div id="banner">
+  <div class="banner-card">
+    <div class="big" id="bBig">🎉</div>
+    <h2 id="bTitle">Người chơi 1 thắng!</h2>
+    <p id="bText">Chúc mừng chiến thắng.</p>
+    <button class="primary" id="bBtn">Chơi ván mới</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var WIN_LEN = 5;
+  var size = 15;
+  var board = [];
+  var current = 'X';
+  var moves = [];
+  var over = false;
+  var scores = {X:0, O:0};
+
+  var boardEl = document.getElementById('board');
+  var sizeSel = document.getElementById('sizeSel');
+  var elX = document.getElementById('pX'), elO = document.getElementById('pO');
+  var scoreXEl = document.getElementById('scoreX'), scoreOEl = document.getElementById('scoreO');
+  var nameX = document.getElementById('nameX'), nameO = document.getElementById('nameO');
+  var lastWin = null;
+
+  try{
+    var saved = JSON.parse(localStorage.getItem('caroNames') || '{}');
+    if(saved.x != null) nameX.value = saved.x;
+    if(saved.o != null) nameO.value = saved.o;
+  }catch(e){}
+  function saveNames(){
+    try{ localStorage.setItem('caroNames', JSON.stringify({x:nameX.value, o:nameO.value})); }catch(e){}
+  }
+  function playerName(p){
+    var n = (p==='X' ? nameX.value : nameO.value).trim();
+    return n || (p==='X' ? 'Người chơi 1' : 'Người chơi 2');
+  }
+  [nameX, nameO].forEach(function(inp){
+    inp.addEventListener('change', saveNames);
+    inp.addEventListener('focus', function(){ this.select(); });
+  });
+
+  function newGame(){
+    size = parseInt(sizeSel.value,10) || 15;
+    board = new Array(size*size).fill('');
+    current = 'X';
+    moves = [];
+    over = false;
+    lastWin = null;
+    hideBanner();
+    render();
+    updateStatus();
+  }
+
+  function render(){
+    boardEl.style.gridTemplateColumns = 'repeat('+size+', 1fr)';
+    var wrap = document.querySelector('.board-wrap');
+    var avail = Math.min(wrap.clientWidth-20, wrap.clientHeight-8);
+    if(avail <= 0) avail = Math.min(window.innerWidth-40, 520);
+    var cellSize = Math.floor((avail - 12) / size);
+    cellSize = Math.max(20, Math.min(cellSize, 44));
+    var font = Math.floor(cellSize*0.62);
+
+    var frag = document.createDocumentFragment();
+    boardEl.innerHTML = '';
+    for(var i=0;i<board.length;i++){
+      var c = document.createElement('div');
+      c.className = 'cell';
+      c.style.width = cellSize+'px';
+      c.style.height = cellSize+'px';
+      c.style.fontSize = font+'px';
+      c.dataset.i = i;
+      if(board[i]==='X'){ c.classList.add('x'); c.textContent='✕'; }
+      else if(board[i]==='O'){ c.classList.add('o'); c.textContent='◯'; }
+      frag.appendChild(c);
+    }
+    boardEl.appendChild(frag);
+    markLast();
+  }
+
+  function markLast(){
+    var last = moves.length ? moves[moves.length-1] : -1;
+    if(last>=0){
+      var el = boardEl.querySelector('.cell[data-i="'+last+'"]');
+      if(el) el.classList.add('last');
+    }
+  }
+
+  boardEl.addEventListener('click', function(e){
+    var cell = e.target.closest('.cell');
+    if(!cell || over) return;
+    var i = parseInt(cell.dataset.i,10);
+    if(board[i]) return;
+
+    board[i] = current;
+    moves.push(i);
+    cell.textContent = current==='X' ? '✕' : '◯';
+    cell.classList.add(current==='X'?'x':'o');
+    var prev = boardEl.querySelector('.cell.last');
+    if(prev) prev.classList.remove('last');
+    cell.classList.add('last');
+
+    var line = checkWin(i, current);
+    if(line){
+      over = true;
+      lastWin = current;
+      scores[current]++;
+      updateScore();
+      line.forEach(function(idx){
+        var el = boardEl.querySelector('.cell[data-i="'+idx+'"]');
+        if(el) el.classList.add('win');
+      });
+      vibrate([30,40,30,40,60]);
+      setTimeout(function(){ showBanner(current); }, 450);
+      return;
+    }
+    if(moves.length === board.length){
+      over = true;
+      vibrate(80);
+      showDraw();
+      return;
+    }
+    current = current==='X' ? 'O' : 'X';
+    vibrate(12);
+    updateStatus();
+  });
+
+  function checkWin(idx, p){
+    var r = Math.floor(idx/size), c = idx%size;
+    var dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for(var d=0; d<dirs.length; d++){
+      var dr=dirs[d][0], dc=dirs[d][1];
+      var line=[idx];
+      var rr=r+dr, cc=c+dc;
+      while(rr>=0&&rr<size&&cc>=0&&cc<size&&board[rr*size+cc]===p){
+        line.push(rr*size+cc); rr+=dr; cc+=dc;
+      }
+      rr=r-dr; cc=c-dc;
+      while(rr>=0&&rr<size&&cc>=0&&cc<size&&board[rr*size+cc]===p){
+        line.unshift(rr*size+cc); rr-=dr; cc-=dc;
+      }
+      if(line.length>=WIN_LEN) return line;
+    }
+    return null;
+  }
+
+  function updateStatus(){
+    elX.classList.toggle('active', current==='X' && !over);
+    elO.classList.toggle('active', current==='O' && !over);
+  }
+  function updateScore(){
+    scoreXEl.textContent = scores.X;
+    scoreOEl.textContent = scores.O;
+  }
+
+  function showBanner(p){
+    document.getElementById('bBig').textContent = '🎉';
+    document.getElementById('bTitle').textContent =
+      playerName(p) + ' ' + (p==='X'?'(✕)':'(◯)') + ' thắng!';
+    document.getElementById('bText').textContent = 'Có ' + WIN_LEN + ' quân liền nhau. Chơi tiếp nào!';
+    document.getElementById('banner').classList.add('show');
+  }
+  function showDraw(){
+    document.getElementById('bBig').textContent = '🤝';
+    document.getElementById('bTitle').textContent = 'Hòa!';
+    document.getElementById('bText').textContent = 'Bàn cờ đã đầy. Thử lại ván khác nhé.';
+    document.getElementById('banner').classList.add('show');
+  }
+  function hideBanner(){ document.getElementById('banner').classList.remove('show'); }
+
+  function vibrate(pattern){
+    if(navigator.vibrate){ try{ navigator.vibrate(pattern); }catch(e){} }
+  }
+
+  document.getElementById('undoBtn').addEventListener('click', function(){
+    if(!moves.length) return;
+    if(over){
+      if(lastWin){
+        scores[lastWin] = Math.max(0, scores[lastWin]-1);
+        updateScore();
+      }
+      over = false;
+      lastWin = null;
+      hideBanner();
+    }
+    var last = moves.pop();
+    var p = board[last];
+    board[last] = '';
+    current = p;
+    render();
+    updateStatus();
+  });
+
+  document.getElementById('newBtn').addEventListener('click', newGame);
+  document.getElementById('bBtn').addEventListener('click', newGame);
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    scores.X=0; scores.O=0; updateScore();
+    newGame();
+  });
+  sizeSel.addEventListener('change', newGame);
+
+  var rt;
+  window.addEventListener('resize', function(){
+    clearTimeout(rt);
+    rt = setTimeout(function(){ render(); }, 120);
+  });
+  window.addEventListener('orientationchange', function(){
+    setTimeout(function(){ render(); }, 250);
+  });
+
+  newGame();
+})();
+</script>
